@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}配置 - 办公自动化工具{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>⚙️ 路径配置</h2>
+    <form method="POST">
+        <label>总表 Excel 路径</label>
+        <input type="text" name="master_path" value="{{ config.master_path }}" placeholder="/data/总表.xlsx">
+        <p class="help-text">服务器上的总表Excel文件绝对路径</p>
+
+        <label>Word 模板路径</label>
+        <input type="text" name="template_path" value="{{ config.template_path }}" placeholder="/data/模板.docx">
+        <p class="help-text">服务器上的Word模板文件绝对路径</p>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 12px;">💾 保存配置</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>💡 提示</h2>
+    <p style="font-size:14px; color:#666; line-height:1.8;">
+        文件需要放在 Docker 挂载的目录内（默认 <code>/data</code>）。<br>
+        例如：将文件放到宿主机的 <code>/vol1/docker/office_auto/data/</code> 目录下，<br>
+        然后路径填写 <code>/data/总表.xlsx</code>。
+    </p>
+</div>
+{% endblock %}
