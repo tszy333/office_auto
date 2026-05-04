@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}导入信息 - 办公自动化工具{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>📥 导入收集表</h2>
+    {% if not config.master_path %}
+    <p style="color:#ff4d4f; margin-bottom: 12px;">⚠️ 请先配置总表 Excel 路径</p>
+    <a href="/config" class="btn btn-warning btn-sm">去配置</a>
+    {% else %}
+    <p style="font-size:14px; color:#666; margin-bottom:16px;">
+        选择竖版收集表文件（可多选），系统会自动验证表头并导入到总表。
+    </p>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="file-input-wrap">
+            <input type="file" name="files" id="fileInput" multiple accept=".xlsx,.xls">
+            <p class="file-count" id="fileCount"></p>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 8px;">🚀 开始导入</button>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('fileInput')?.addEventListener('change', function(e) {
+    const count = e.target.files.length;
+    document.getElementById('fileCount').textContent = count > 0 ? `已选择 ${count} 个文件` : '';
+});
+</script>
+{% endblock %}
