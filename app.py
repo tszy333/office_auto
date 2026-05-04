@@ -6,6 +6,7 @@ Excel收集表批量导入 + Word模板导出
 """
 
 import os
+import logging
 import configparser
 import tempfile
 from io import BytesIO
@@ -14,8 +15,20 @@ from werkzeug.utils import secure_filename
 import pandas as pd
 from docx import Document
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+@app.errorhandler(500)
+def internal_error(e):
+    logger.error(f"Internal Server Error: {e}")
+    return """<!DOCTYPE html><html><head><title>Error</title>
+    <style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f2f5}
+    .box{background:white;padding:40px;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+    a{color:#667eea;text-decoration:none}</style></head>
+    <body><div class="box"><h1>😵 出错了</h1><p>服务器内部错误，请刷新重试或检查配置。</p><a href="/">← 返回首页</a></div></body></html>""", 500
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 配置管理
@@ -378,26 +391,36 @@ def overwrite_master():
         flash("请选择要上传的总表文件！", "error")
         return redirect(url_for("preview_page"))
 
+    tmp_path = None
     try:
-        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-            f.save(tmp.name)
-            # 验证文件能正常读取
-            test_df = pd.read_excel(tmp.name, engine="openpyxl", dtype=str)
-            if test_df.empty:
-                flash("上传的文件为空！", "error")
-                os.unlink(tmp.name)
-                return redirect(url_for("preview_page"))
-            # 覆盖原文件
-            os.makedirs(os.path.dirname(master_path), exist_ok=True)
-            with open(tmp.name, "rb") as src:
-                with open(master_path, "wb") as dst:
-                    dst.write(src.read())
-            os.unlink(tmp.name)
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xlsx")
+        os.close(tmp_fd)
+        f.save(tmp_path)
+        # 验证文件能正常读取
+        test_df = pd.read_excel(tmp_path, engine="openpyxl", dtype=str)
+        if test_df.empty:
+            flash("上传的文件为空！", "error")
+            return redirect(url_for("preview_page"))
+        # 确保目录存在
+        master_dir = os.path.dirname(master_path)
+        if master_dir:
+            os.makedirs(master_dir, exist_ok=True)
+        # 覆盖原文件
+        with open(tmp_path, "rb") as src:
+            with open(master_path, "wb") as dst:
+                dst.write(src.read())
+        row_count = len(test_df)
     except Exception as e:
         flash(f"覆盖总表失败：{e}", "error")
         return redirect(url_for("preview_page"))
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
-    flash(f"总表已成功覆盖！共 {len(test_df)} 行数据。", "success")
+    flash(f"总表已成功覆盖！共 {row_count} 行数据。", "success")
     return redirect(url_for("preview_page"))
 
 
