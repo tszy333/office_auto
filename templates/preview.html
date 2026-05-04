@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}预览总表 - 办公自动化工具{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>📊 总表预览（只读）</h2>
+    {% if not config.master_path %}
+    <p style="color:#ff4d4f;">⚠️ 请先配置总表路径</p>
+    <a href="/config" class="btn btn-warning btn-sm">去配置</a>
+    {% elif not headers %}
+    <p style="color:#999;">总表暂无数据或文件不存在。</p>
+    {% else %}
+    <p style="font-size:13px; color:#666; margin-bottom:12px;">
+        共 <strong>{{ row_count }}</strong> 行 · {{ headers|length }} 列
+        <span style="float:right;">
+            <a href="/download_master" class="btn btn-success btn-sm">📥 导出总表</a>
+        </span>
+    </p>
+
+    <div style="overflow-x:auto; border:1px solid #e8e8e8; border-radius:8px;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#fafafa; position:sticky; top:0;">
+                    <th style="padding:8px 12px; border-bottom:2px solid #e8e8e8; text-align:center; color:#999; min-width:40px;">#</th>
+                    {% for h in headers %}
+                    <th style="padding:8px 12px; border-bottom:2px solid #e8e8e8; white-space:nowrap; font-weight:600;">{{ h }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr style="border-bottom:1px solid #f0f0f0;">
+                    <td style="padding:6px 12px; text-align:center; color:#bbb; font-size:12px;">{{ loop.index }}</td>
+                    {% for cell in row %}
+                    <td style="padding:6px 12px; white-space:nowrap;">{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>🔄 覆盖总表</h2>
+    <p style="font-size:13px; color:#666; margin-bottom:12px;">
+        导出总表 → 在 Excel 中修改 → 上传覆盖原文件。表头必须与原总表一致。
+    </p>
+    <form method="POST" action="/overwrite_master" enctype="multipart/form-data">
+        <input type="file" name="master_file" accept=".xlsx,.xls" required>
+        <button type="submit" class="btn btn-warning" style="margin-top:8px;"
+            onclick="return confirm('确认覆盖当前总表？此操作不可撤销！')">⚠️ 上传覆盖总表</button>
+    </form>
+</div>
+{% endblock %}
