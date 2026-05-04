@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  office-auto:
+    image: ghcr.io/tszy33/office_auto:latest
+    container_name: office-auto
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
