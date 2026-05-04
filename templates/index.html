@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}办公自动化工具 - 首页{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>快速开始</h2>
+    {% if config.master_path %}
+    <div class="path-display">📄 总表：{{ config.master_path }}</div>
+    {% else %}
+    <div class="path-display" style="color:#ff4d4f;">⚠️ 未配置总表路径</div>
+    {% endif %}
+    {% if config.template_path %}
+    <div class="path-display">📝 模板：{{ config.template_path }}</div>
+    {% else %}
+    <div class="path-display" style="color:#ff4d4f;">⚠️ 未配置Word模板路径</div>
+    {% endif %}
+
+    <div style="margin-top: 20px;">
+        <a href="/import" class="btn btn-primary btn-block">📥 导入信息（批量导入收集表）</a>
+        <a href="/export" class="btn btn-success btn-block">📤 导出项目（单个导出Word）</a>
+        <a href="/config" class="btn btn-warning btn-block">⚙️ 配置（路径设置）</a>
+    </div>
+</div>
+{% endblock %}
