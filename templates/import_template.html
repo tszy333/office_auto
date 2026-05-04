@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}导入模板 - 办公自动化工具{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>📄 当前 Word 模板</h2>
+    {% if config.template_path %}
+    <div class="path-display">模板路径：{{ config.template_path }}</div>
+    {% if template_exists %}
+        {% if template_info %}
+        <div style="font-size:14px; color:#666; margin-bottom:16px; line-height:1.8;">
+            ✅ 模板文件存在<br>
+            段落数：{{ template_info.paragraphs }}，表格数：{{ template_info.tables }}
+            {% if template_info.placeholders %}
+            <br>占位符：<code>{{ "{{" }}{{ template_info.placeholders | join("}} / {{") }}{{ "}}" }}</code>
+            {% endif %}
+        </div>
+        {% else %}
+        <div style="font-size:14px; color:#666; margin-bottom:16px;">✅ 模板文件存在（无法解析详情）</div>
+        {% endif %}
+    {% else %}
+        <div style="font-size:14px; color:#faad14; margin-bottom:16px;">⚠️ 模板文件不存在，请上传</div>
+    {% endif %}
+    {% else %}
+    <div style="font-size:14px; color:#ff4d4f; margin-bottom:16px;">
+        ❌ 未配置模板路径，请先到 <a href="/config" style="color:#667eea;">配置页面</a> 设置 Word 模板路径
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>📤 上传新模板</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <label>选择 Word 模板文件（.docx）</label>
+        <input type="file" name="template_file" accept=".docx" required>
+        <p class="help-text">上传后将直接覆盖当前模板文件，不可撤销</p>
+
+        <button type="submit" class="btn btn-warning" style="margin-top: 12px;"
+            onclick="return confirm('确认上传？新模板将覆盖现有模板文件。');">
+            ⚠️ 上传并覆盖模板
+        </button>
+    </form>
+</div>
+{% endblock %}
