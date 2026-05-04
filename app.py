@@ -279,6 +279,83 @@ def import_page():
     return render_template("import.html", config=config)
 
 
+@app.route("/import_template", methods=["GET", "POST"])
+def import_template_page():
+    """上传新的 Word 模板，覆盖配置中的模板文件"""
+    config = load_config()
+    template_path = config.get("template_path", "")
+
+    if request.method == "POST":
+        if not template_path:
+            flash("请先在配置页面设置 Word 模板路径！", "error")
+            return redirect(url_for("config_page"))
+
+        f = request.files.get("template_file")
+        if not f or f.filename == "":
+            flash("请选择要上传的 Word 模板文件！", "error")
+            return redirect(url_for("import_template_page"))
+
+        fname = secure_filename(f.filename) or f.filename
+        if not fname.lower().endswith(".docx"):
+            flash("请上传 .docx 格式的 Word 文件！", "error")
+            return redirect(url_for("import_template_page"))
+
+        tmp_path = None
+        try:
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=".docx")
+            os.close(tmp_fd)
+            f.save(tmp_path)
+            # 验证文件能正常打开
+            doc = Document(tmp_path)
+            para_count = len(doc.paragraphs)
+            table_count = len(doc.tables)
+            # 确保目标目录存在
+            template_dir = os.path.dirname(template_path)
+            if template_dir:
+                os.makedirs(template_dir, exist_ok=True)
+            # 覆盖原模板
+            with open(tmp_path, "rb") as src:
+                with open(template_path, "wb") as dst:
+                    dst.write(src.read())
+        except Exception as e:
+            flash(f"上传失败：{e}", "error")
+            return redirect(url_for("import_template_page"))
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+        flash(f"Word 模板已更新！段落数：{para_count}，表格数：{table_count}", "success")
+        return redirect(url_for("import_template_page"))
+
+    # 检查当前模板是否存在
+    template_exists = template_path and os.path.isfile(template_path)
+    template_info = None
+    if template_exists:
+        try:
+            doc = Document(template_path)
+            placeholders = set()
+            for para in doc.paragraphs:
+                import re
+                placeholders.update(re.findall(r"\{\{(.+?)\}\}", para.text))
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for para in cell.paragraphs:
+                            placeholders.update(re.findall(r"\{\{(.+?)\}\}", para.text))
+            template_info = {
+                "paragraphs": len(doc.paragraphs),
+                "tables": len(doc.tables),
+                "placeholders": sorted(placeholders),
+            }
+        except Exception:
+            template_info = None
+
+    return render_template("import_template.html", config=config, template_exists=template_exists, template_info=template_info)
+
+
 @app.route("/export", methods=["GET", "POST"])
 def export_page():
     config = load_config()
