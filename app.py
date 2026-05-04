@@ -321,6 +321,86 @@ def export_page():
     return render_template("export.html", config=config, pk_values=pk_values)
 
 
+@app.route("/preview")
+def preview_page():
+    """预览总表（只读）"""
+    config = load_config()
+    master_path = config.get("master_path", "")
+    headers = []
+    rows = []
+    row_count = 0
+
+    if master_path and os.path.isfile(master_path):
+        try:
+            master_df = read_master(master_path)
+            if not master_df.empty:
+                headers = list(master_df.columns)
+                rows = master_df.fillna("").values.tolist()
+                row_count = len(rows)
+        except Exception as e:
+            flash(f"读取总表失败：{e}", "error")
+
+    return render_template("preview.html", config=config, headers=headers, rows=rows, row_count=row_count)
+
+
+@app.route("/download_master")
+def download_master():
+    """导出总表 Excel 文件"""
+    config = load_config()
+    master_path = config.get("master_path", "")
+    if not master_path or not os.path.isfile(master_path):
+        flash("总表文件不存在！", "error")
+        return redirect(url_for("index"))
+
+    buf = BytesIO()
+    with open(master_path, "rb") as f:
+        buf.write(f.read())
+    buf.seek(0)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name="总表.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+@app.route("/overwrite_master", methods=["POST"])
+def overwrite_master():
+    """上传修改后的总表覆盖原文件"""
+    config = load_config()
+    master_path = config.get("master_path", "")
+    if not master_path:
+        flash("请先配置总表路径！", "error")
+        return redirect(url_for("config_page"))
+
+    f = request.files.get("master_file")
+    if not f or f.filename == "":
+        flash("请选择要上传的总表文件！", "error")
+        return redirect(url_for("preview_page"))
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            f.save(tmp.name)
+            # 验证文件能正常读取
+            test_df = pd.read_excel(tmp.name, engine="openpyxl", dtype=str)
+            if test_df.empty:
+                flash("上传的文件为空！", "error")
+                os.unlink(tmp.name)
+                return redirect(url_for("preview_page"))
+            # 覆盖原文件
+            os.makedirs(os.path.dirname(master_path), exist_ok=True)
+            with open(tmp.name, "rb") as src:
+                with open(master_path, "wb") as dst:
+                    dst.write(src.read())
+            os.unlink(tmp.name)
+    except Exception as e:
+        flash(f"覆盖总表失败：{e}", "error")
+        return redirect(url_for("preview_page"))
+
+    flash(f"总表已成功覆盖！共 {len(test_df)} 行数据。", "success")
+    return redirect(url_for("preview_page"))
+
+
 @app.route("/api/pk_values")
 def api_pk_values():
     """API: 获取总表中的编号列表（供搜索用）"""
