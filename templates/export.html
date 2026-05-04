@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}导出项目 - 办公自动化工具{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>📤 导出 Word 文档</h2>
+    {% if not config.master_path or not config.template_path %}
+    <p style="color:#ff4d4f; margin-bottom: 12px;">⚠️ 请先配置总表和Word模板路径</p>
+    <a href="/config" class="btn btn-warning btn-sm">去配置</a>
+    {% elif not pk_values %}
+    <p style="color:#999;">总表中暂无数据，无法导出。</p>
+    {% else %}
+    <form method="POST" id="exportForm">
+        <label>选择编号</label>
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜索编号...">
+        <input type="hidden" name="pk_value" id="pkValue">
+
+        <div class="pk-list" id="pkList">
+            {% for v in pk_values %}
+            <div class="pk-item" data-value="{{ v }}" onclick="selectItem(this)">{{ v }}</div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-success" style="margin-top: 16px;" id="exportBtn" disabled>📄 导出 Word</button>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+const searchBox = document.getElementById('searchBox');
+const pkList = document.getElementById('pkList');
+const pkValue = document.getElementById('pkValue');
+const exportBtn = document.getElementById('exportBtn');
+
+searchBox?.addEventListener('input', function() {
+    const keyword = this.value.toLowerCase();
+    const items = pkList.querySelectorAll('.pk-item');
+    items.forEach(item => {
+        item.style.display = item.dataset.value.toLowerCase().includes(keyword) ? '' : 'none';
+    });
+});
+
+function selectItem(el) {
+    pkList.querySelectorAll('.pk-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+    pkValue.value = el.dataset.value;
+    exportBtn.disabled = false;
+}
+</script>
+{% endblock %}
